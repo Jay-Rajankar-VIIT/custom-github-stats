@@ -149,22 +149,7 @@ export async function GET(request: Request) {
         </defs>
 
         <style>
-          .fade-in { opacity: 0; animation: fadeIn 1s ease-in-out forwards; }
-          .delay-1 { animation-delay: 0.3s; }
-          .delay-2 { animation-delay: 0.6s; }
-          .delay-3 { animation-delay: 0.9s; }
-          
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          
-          .pulse-text { animation: pulse 3s infinite ease-in-out; }
-          @keyframes pulse {
-            0% { opacity: 0.8; }
-            50% { opacity: 1; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
-            100% { opacity: 0.8; }
-          }
+          /* CSS animations are stripped by GitHub's image proxy, so we use native SVG <animate> */
         </style>
 
         <!-- Base Background -->
@@ -184,8 +169,9 @@ export async function GET(request: Request) {
         </g>
 
         <!-- TITLE -->
-        <g class="fade-in">
-          <text x="400" y="60" text-anchor="middle" font-family="'Segoe UI', Ubuntu, sans-serif" font-weight="bold" font-size="32" fill="#ffffff" class="pulse-text">
+        <g opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="1s" fill="freeze" />
+          <text x="400" y="60" text-anchor="middle" font-family="'Segoe UI', Ubuntu, sans-serif" font-weight="bold" font-size="32" fill="#ffffff">
             🚀 JAY'S DEVELOPER UNIVERSE 🚀
           </text>
           <text x="400" y="85" text-anchor="middle" font-family="'Segoe UI', Ubuntu, sans-serif" font-size="16" fill="#cbd5e1">
@@ -194,31 +180,33 @@ export async function GET(request: Request) {
         </g>
 
         <!-- PANEL 1: MASSIVE AGGREGATE STATS (Top Center) -->
-        <g class="fade-in delay-1" transform="translate(40, 120)">
+        <g transform="translate(40, 120)" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="1s" begin="0.3s" fill="freeze" />
           <rect width="720" height="160" rx="15" fill="url(#glass-grad-highlight)" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
           
           <g font-family="'Segoe UI', Ubuntu, sans-serif" fill="#ffffff" text-anchor="middle">
             <!-- Contributions -->
-            <text x="120" y="55" font-size="16" fill="#cbd5e1" font-weight="600">Contributions</text>
-            <text x="120" y="105" font-size="44" font-weight="bold" fill="#38bdf8">${combined.total}</text>
-            <text x="120" y="130" font-size="14" fill="#94a3b8">(past year)</text>
+            <text x="90" y="55" font-size="16" fill="#cbd5e1" font-weight="600">Contributions</text>
+            <text x="90" y="105" font-size="44" font-weight="bold" fill="#38bdf8">${combined.total}</text>
+            <text x="90" y="130" font-size="14" fill="#94a3b8">(past year)</text>
             
             <!-- Commits -->
-            <text x="280" y="55" font-size="16" fill="#cbd5e1" font-weight="600">Total Commits</text>
-            <text x="280" y="105" font-size="44" font-weight="bold" fill="#a855f7">${combined.commits}</text>
+            <text x="270" y="55" font-size="16" fill="#cbd5e1" font-weight="600">Total Commits</text>
+            <text x="270" y="105" font-size="44" font-weight="bold" fill="#a855f7">${combined.commits}</text>
 
             <!-- Stars -->
-            <text x="440" y="55" font-size="16" fill="#cbd5e1" font-weight="600">Stars Earned</text>
-            <text x="440" y="105" font-size="44" font-weight="bold" fill="#fde047">${combined.stars}</text>
+            <text x="450" y="55" font-size="16" fill="#cbd5e1" font-weight="600">Stars Earned</text>
+            <text x="450" y="105" font-size="44" font-weight="bold" fill="#fde047">${combined.stars}</text>
 
             <!-- Followers -->
-            <text x="600" y="55" font-size="16" fill="#cbd5e1" font-weight="600">Followers</text>
-            <text x="600" y="105" font-size="44" font-weight="bold" fill="#ec4899">${combined.followers}</text>
+            <text x="630" y="55" font-size="16" fill="#cbd5e1" font-weight="600">Followers</text>
+            <text x="630" y="105" font-size="44" font-weight="bold" fill="#ec4899">${combined.followers}</text>
           </g>
         </g>
 
         <!-- PANEL 2: TOP LANGUAGES (Bottom Left) -->
-        <g class="fade-in delay-2" transform="translate(40, 310)">
+        <g transform="translate(40, 310)" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="1s" begin="0.6s" fill="freeze" />
           <rect width="345" height="250" rx="15" fill="url(#glass-grad)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
           
           <text x="25" y="40" font-family="'Segoe UI', Ubuntu, sans-serif" font-weight="bold" font-size="20" fill="#ffffff">
@@ -240,7 +228,8 @@ export async function GET(request: Request) {
         </g>
 
         <!-- PANEL 3: ACCOUNT SPLIT (Bottom Right) -->
-        <g class="fade-in delay-3" transform="translate(415, 310)">
+        <g transform="translate(415, 310)" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="1s" begin="0.9s" fill="freeze" />
           <rect width="345" height="250" rx="15" fill="url(#glass-grad)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
           
           <text x="25" y="40" font-family="'Segoe UI', Ubuntu, sans-serif" font-weight="bold" font-size="20" fill="#ffffff">
