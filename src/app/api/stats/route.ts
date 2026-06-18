@@ -226,16 +226,16 @@ export async function GET(request: Request) {
           </text>
           
           <g font-family="'Segoe UI', Ubuntu, sans-serif" font-size="14" fill="#cbd5e1" font-weight="600">
-            ${topLangs.map((lang, i) => \`
-              <g transform="translate(25, \${75 + i * 35})">
-                <text x="0" y="12">\${lang.name}</text>
-                <text x="295" y="12" text-anchor="end">\${Math.round((lang.count / totalLangRepos) * 100)}%</text>
+            ${topLangs.map((lang, i) => `
+              <g transform="translate(25, ${75 + i * 35})">
+                <text x="0" y="12">${lang.name}</text>
+                <text x="295" y="12" text-anchor="end">${Math.round((lang.count / totalLangRepos) * 100)}%</text>
                 <rect x="0" y="20" width="295" height="6" rx="3" fill="rgba(255,255,255,0.1)" />
-                <rect x="0" y="20" width="0" height="6" rx="3" fill="\${lang.color}">
-                  <animate attributeName="width" from="0" to="\${(lang.count / totalLangRepos) * 295}" dur="1.5s" fill="freeze" />
+                <rect x="0" y="20" width="0" height="6" rx="3" fill="${lang.color}">
+                  <animate attributeName="width" from="0" to="${(lang.count / totalLangRepos) * 295}" dur="1.5s" fill="freeze" />
                 </rect>
               </g>
-            \`).join('')}
+            `).join('')}
           </g>
         </g>
 
