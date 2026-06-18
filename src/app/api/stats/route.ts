@@ -8,6 +8,11 @@ export async function GET(request: Request) {
     return new NextResponse('GITHUB_TOKEN_1 or GITHUB_TOKEN_2 not found. Please set both in Vercel Environment Variables.', { status: 500 });
   }
 
+  // Check if JSON format is requested
+  const url = new URL(request.url);
+  const format = url.searchParams.get('format');
+  const returnJSON = format === 'json';
+
   const query = (username: string) => `
     query {
       user(login: "${username}") {
@@ -383,6 +388,26 @@ export async function GET(request: Request) {
 
       </svg>
     `;
+
+    // Return JSON if requested
+    if (returnJSON) {
+      return NextResponse.json(
+        {
+          combined,
+          stats1,
+          stats2,
+          topLangs,
+          user1Data,
+          user2Data,
+        },
+        {
+          status: 200,
+          headers: {
+            'Cache-Control': 'public, max-age=3600',
+          },
+        }
+      );
+    }
 
     return new NextResponse(svg.trim(), {
       status: 200,
