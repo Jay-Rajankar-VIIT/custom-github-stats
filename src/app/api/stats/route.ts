@@ -20,9 +20,15 @@ export async function GET(request: Request) {
           totalIssueContributions
           contributionCalendar {
             totalContributions
+            weeks {
+              contributionDays {
+                contributionCount
+                date
+              }
+            }
           }
         }
-        repositories(first: 100, ownerAffiliations: OWNER, isFork: false, orderBy: {field: PUSHED_AT, direction: DESC}) {
+        repositories(first: 100, ownerAffiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER], isFork: false, orderBy: {field: PUSHED_AT, direction: DESC}) {
           totalCount
           nodes {
             stargazers { totalCount }
@@ -114,32 +120,38 @@ export async function GET(request: Request) {
 
     const totalLangRepos = topLangs.reduce((acc, l) => acc + l.count, 0) || 1; // avoid division by 0
 
-    // Massive 1200x900 Animated SVG Dashboard with Games & Commit Graph
-    const generateHeatmapWeeks = () => {
-      const weeks = [];
-      for (let i = 0; i < 52; i++) {
-        const week = [];
-        for (let j = 0; j < 7; j++) {
-          week.push(Math.floor(Math.random() * 100));
-        }
-        weeks.push(week);
-      }
-      return weeks;
+    // Massive 1200x900 Animated SVG Dashboard with Real Contribution Graph
+    const generateHeatmapFromData = (user1: any, user2: any) => {
+      const weeks: any[] = [];
+      
+      // Get contribution calendar from both users
+      const calendar1 = user1?.contributionsCollection?.contributionCalendar?.weeks || [];
+      const calendar2 = user2?.contributionsCollection?.contributionCalendar?.weeks || [];
+      
+      // Combine and get last 52 weeks
+      const allWeeks = [...calendar1, ...calendar2];
+      const recentWeeks = allWeeks.slice(-52);
+      
+      // Convert to week/day format with contribution counts
+      recentWeeks.forEach((week: any) => {
+        const weekDays = week.contributionDays.map((day: any) => day.contributionCount);
+        weeks.push(weekDays);
+      });
+      
+      return weeks.length > 0 ? weeks : [];
     };
 
-    const heatmapData = generateHeatmapWeeks();
+    const heatmapData = generateHeatmapFromData(user1Data, user2Data);
     const getHeatmapColor = (value: number) => {
       if (value === 0) return '#0f172a';
-      if (value < 20) return '#10b981';
-      if (value < 40) return '#34d399';
-      if (value < 60) return '#6ee7b7';
-      if (value < 80) return '#a7f3d0';
+      if (value < 5) return '#10b981';
+      if (value < 10) return '#34d399';
+      if (value < 20) return '#6ee7b7';
+      if (value < 30) return '#a7f3d0';
       return '#d1fae5';
     };
 
-    // Calculate "Code Level" (gamification)
     const totalActivity = combined.commits + combined.prs + combined.issues;
-    const codeLevel = Math.min(100, Math.floor((combined.commits / 1000) * 60 + (combined.stars / 100) * 20 + (combined.followers / 50) * 20));
 
     const svg = `
       <svg width="1200" height="900" viewBox="0 0 1200 900" xmlns="http://www.w3.org/2000/svg">
@@ -175,13 +187,6 @@ export async function GET(request: Request) {
           <linearGradient id="glass-grad-highlight" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="rgba(255, 255, 255, 0.2)" />
             <stop offset="100%" stop-color="rgba(255, 255, 255, 0.05)" />
-          </linearGradient>
-
-          <!-- Game UI Gradients -->
-          <linearGradient id="level-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#ff006e" />
-            <stop offset="50%" stop-color="#8338ec" />
-            <stop offset="100%" stop-color="#3a86ff" />
           </linearGradient>
         </defs>
 
@@ -235,16 +240,6 @@ export async function GET(request: Request) {
 
             <text x="820" y="45" font-size="14" fill="#cbd5e1" font-weight="600">Repos</text>
             <text x="820" y="100" font-size="52" font-weight="bold" fill="#10b981">${combined.repos}</text>
-
-            <!-- LEVEL METER GAME UI -->
-            <g transform="translate(950, 20)">
-              <text x="0" y="18" font-size="13" fill="#fbbf24" font-weight="bold" text-anchor="middle">⚡ CODE LEVEL</text>
-              <rect x="-55" y="30" width="110" height="10" rx="5" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="1" />
-              <rect x="-55" y="30" width="0" height="10" rx="5" fill="url(#level-grad)">
-                <animate attributeName="width" from="0" to="${(codeLevel / 100) * 110}" dur="2s" fill="freeze" />
-              </rect>
-              <text x="0" y="60" font-size="16" fill="#fbbf24" font-weight="bold" text-anchor="middle">${codeLevel}/100</text>
-            </g>
           </g>
         </g>
 
@@ -259,9 +254,9 @@ export async function GET(request: Request) {
           
           <!-- Heatmap Grid -->
           <g font-family="'Segoe UI', Ubuntu, sans-serif" font-size="9">
-            ${heatmapData.map((week, weekIdx) => `
+            ${heatmapData.map((week: any, weekIdx: number) => `
               <g>
-                ${week.map((value, dayIdx) => `
+                ${week.map((value: number, dayIdx: number) => `
                   <rect x="${25 + weekIdx * 9.5}" y="${60 + dayIdx * 9.5}" width="8" height="8" rx="1" fill="${getHeatmapColor(value)}" stroke="rgba(255,255,255,0.1)" stroke-width="0.5" />
                 `).join('')}
               </g>
@@ -382,9 +377,6 @@ export async function GET(request: Request) {
 
               <text x="0" y="80" font-size="12" fill="#cbd5e1" text-anchor="start">Total Followers:</text>
               <text x="500" y="80" fill="#fbbf24" text-anchor="end" font-weight="bold">${combined.followers}</text>
-
-              <text x="0" y="120" font-size="12" fill="#cbd5e1" text-anchor="start">Productivity Score:</text>
-              <text x="500" y="120" fill="#fbbf24" text-anchor="end" font-weight="bold">${(codeLevel > 75 ? '🌟 ELITE' : codeLevel > 50 ? '⚡ ADVANCED' : codeLevel > 25 ? '📈 SKILLED' : '🌱 LEARNING')}</text>
             </g>
           </g>
         </g>
