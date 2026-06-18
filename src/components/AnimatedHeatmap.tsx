@@ -27,6 +27,18 @@ export function AnimatedHeatmap({ weeks }: AnimatedHeatmapProps) {
   // Only show last 52 weeks
   const displayWeeks = weeks.slice(-52);
 
+  // Flatten all days for easier rendering
+  const allDays: Array<{ count: number; dayIdx: number; weekIdx: number }> = [];
+  displayWeeks.forEach((week, weekIdx) => {
+    week.contributionDays.forEach((day, dayIdx) => {
+      allDays.push({
+        count: day.contributionCount,
+        dayIdx,
+        weekIdx,
+      });
+    });
+  });
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -54,40 +66,26 @@ export function AnimatedHeatmap({ weeks }: AnimatedHeatmapProps) {
 
         {/* Heatmap Grid */}
         <g>
-          {displayWeeks.map((week, weekIdx) => (
-            <g key={weekIdx}>
-              {week.contributionDays.map((day, dayIdx) => (
-                <motion.g
-                  key={`${weekIdx}-${dayIdx}`}
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  transition={{
-                    duration: 0.5,
-                    delay: (weekIdx * 7 + dayIdx) * 0.01,
-                  }}
-                  viewport={{ once: true }}
-                >
-                  <rect
-                    x={50 + weekIdx * 15}
-                    y={30 + dayIdx * 15}
-                    width="12"
-                    height="12"
-                    rx="2"
-                    fill={getColor(day.contributionCount)}
-                    stroke="rgba(255,255,255,0.1)"
-                    strokeWidth="0.5"
-                    filter="url(#heatmapGlow)"
-                  >
-                    <animate
-                      attributeName="opacity"
-                      values="0.6; 1; 0.6"
-                      dur="3s"
-                      repeatCount="indefinite"
-                    />
-                  </rect>
-                  <title>{`${day.contributionCount} contributions on ${day.date}`}</title>
-                </motion.g>
-              ))}
+          {allDays.map((item, idx) => (
+            <g key={idx}>
+              <rect
+                x={50 + item.weekIdx * 15}
+                y={30 + item.dayIdx * 15}
+                width="12"
+                height="12"
+                rx="2"
+                fill={getColor(item.count)}
+                stroke="rgba(255,255,255,0.1)"
+                strokeWidth="0.5"
+                filter="url(#heatmapGlow)"
+              >
+                <animate
+                  attributeName="opacity"
+                  values="0.6; 1; 0.6"
+                  dur="3s"
+                  repeatCount="indefinite"
+                />
+              </rect>
             </g>
           ))}
         </g>
