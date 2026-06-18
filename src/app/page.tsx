@@ -12,23 +12,50 @@ import { ActivityTimeline } from '@/components/ActivityTimeline';
 import { UniverseMap } from '@/components/UniverseMap';
 import { Achievements } from '@/components/Achievements';
 import { CommandCenter } from '@/components/CommandCenter';
+import { AnimatedStats } from '@/components/AnimatedStats';
+import { AnimatedHeatmap } from '@/components/AnimatedHeatmap';
 import { motion } from 'framer-motion';
 
 export default function Home() {
   const { combined, stats1, stats2, user1Data, user2Data, loading, error } = useGitHubData();
 
   if (error) {
+    const isTokenError = error.includes('GITHUB_TOKEN') || error.includes('token');
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-red-400 mb-4">Error Loading Data</h1>
-          <p className="text-slate-300 mb-6">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-          >
-            Retry
-          </button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <h1 className="text-4xl font-bold text-red-400 mb-4">⚠️ Configuration Required</h1>
+          {isTokenError ? (
+            <>
+              <p className="text-slate-300 mb-6">
+                GitHub tokens are not configured. Your dashboard needs GitHub API access to fetch your stats.
+              </p>
+              <div className="space-y-3">
+                <a
+                  href="/setup"
+                  className="block px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-bold"
+                >
+                  Go to Setup Guide
+                </a>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="block w-full px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-slate-300 mb-6">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              >
+                Retry
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -60,6 +87,24 @@ export default function Home() {
       {/* Main Content */}
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-20 space-y-16">
         
+        {/* Animated SVG Stats */}
+        <motion.section
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+          className="mb-16"
+        >
+          <h2 className="text-3xl font-bold text-white mb-8 text-center">Key Metrics</h2>
+          <AnimatedStats
+            contributions={combined.total}
+            commits={combined.commits}
+            stars={combined.stars}
+            followers={combined.followers}
+            repos={combined.repos}
+          />
+        </motion.section>
+
         {/* Developer Level */}
         <motion.section
           initial={{ opacity: 0 }}
@@ -102,6 +147,16 @@ export default function Home() {
         >
           <h2 className="text-3xl font-bold text-white mb-8">Contribution Galaxy</h2>
           <ContributionGalaxy weeks={weeks} />
+        </motion.section>
+
+        {/* Animated Heatmap */}
+        <motion.section
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+        >
+          <AnimatedHeatmap weeks={weeks} />
         </motion.section>
 
         {/* Coding Streak */}
