@@ -11,6 +11,9 @@ export async function GET(request: Request) {
   const query = (username: string) => `
     query {
       user(login: "${username}") {
+        followers {
+          totalCount
+        }
         contributionsCollection {
           totalCommitContributions
           totalPullRequestContributions
@@ -19,8 +22,15 @@ export async function GET(request: Request) {
             totalContributions
           }
         }
-        repositories(first: 100, ownerAffiliations: OWNER, isFork: false) {
-          nodes { stargazers { totalCount } }
+        repositories(first: 100, ownerAffiliations: OWNER, isFork: false, orderBy: {field: PUSHED_AT, direction: DESC}) {
+          totalCount
+          nodes {
+            stargazers { totalCount }
+            primaryLanguage {
+              name
+              color
+            }
+          }
         }
       }
     }
@@ -42,23 +52,37 @@ export async function GET(request: Request) {
       return json.data.user;
     };
 
-    // Fetch both accounts securely using their respective private tokens
     const [user1Data, user2Data] = await Promise.all([
       fetchStats("Jay-Rajankar-VIIT", token1),
       fetchStats("JayRajankar", token2)
     ]);
 
     const calculateStats = (user: any) => {
-      if (!user) return { commits: 0, prs: 0, issues: 0, total: 0, stars: 0 };
+      if (!user) return { commits: 0, prs: 0, issues: 0, total: 0, stars: 0, followers: 0, repos: 0, languages: [] };
+      
       const contribs = user.contributionsCollection;
-      const repos = user.repositories.nodes;
-      const stars = repos.reduce((acc: number, repo: any) => acc + repo.stargazers.totalCount, 0);
+      const repoNodes = user.repositories.nodes;
+      
+      const stars = repoNodes.reduce((acc: number, repo: any) => acc + repo.stargazers.totalCount, 0);
+      
+      const langs: Record<string, { count: number, color: string }> = {};
+      repoNodes.forEach((repo: any) => {
+        if (repo.primaryLanguage) {
+          const name = repo.primaryLanguage.name;
+          if (!langs[name]) langs[name] = { count: 0, color: repo.primaryLanguage.color || "#888" };
+          langs[name].count += 1;
+        }
+      });
+
       return {
         commits: contribs.totalCommitContributions || 0,
         prs: contribs.totalPullRequestContributions || 0,
         issues: contribs.totalIssueContributions || 0,
         total: contribs.contributionCalendar.totalContributions || 0,
-        stars
+        followers: user.followers?.totalCount || 0,
+        repos: user.repositories?.totalCount || 0,
+        stars,
+        languages: langs
       };
     };
 
@@ -71,109 +95,177 @@ export async function GET(request: Request) {
       prs: stats1.prs + stats2.prs,
       issues: stats1.issues + stats2.issues,
       total: stats1.total + stats2.total,
+      followers: stats1.followers + stats2.followers,
+      repos: stats1.repos + stats2.repos,
     };
 
-    // Advanced Glassmorphism SVG Dashboard
+    // Combine languages
+    const combinedLangs: Record<string, { count: number, color: string }> = { ...stats1.languages };
+    for (const [name, data] of Object.entries(stats2.languages)) {
+      if (!combinedLangs[name]) combinedLangs[name] = { count: 0, color: data.color };
+      combinedLangs[name].count += data.count;
+    }
+
+    // Sort and get top 5 languages
+    const topLangs = Object.entries(combinedLangs)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    const totalLangRepos = topLangs.reduce((acc, l) => acc + l.count, 0) || 1; // avoid division by 0
+
+    // Massive 800x600 Animated SVG Dashboard
     const svg = `
-      <svg width="500" height="420" viewBox="0 0 500 420" xmlns="http://www.w3.org/2000/svg">
+      <svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#0f172a" />
             <stop offset="100%" stop-color="#1e1b4b" />
           </linearGradient>
-          <!-- Orbs for fake glass effect underneath -->
-          <radialGradient id="orb1" cx="20%" cy="20%" r="50%">
-            <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.5"/>
-            <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
-          </radialGradient>
-          <radialGradient id="orb2" cx="80%" cy="80%" r="50%">
-            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.5"/>
+          
+          <!-- Moving Orbs -->
+          <radialGradient id="orb-blue" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.6"/>
             <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
           </radialGradient>
-          <radialGradient id="orb3" cx="50%" cy="100%" r="50%">
-            <stop offset="0%" stop-color="#ec4899" stop-opacity="0.4"/>
+          <radialGradient id="orb-purple" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="orb-pink" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ec4899" stop-opacity="0.5"/>
             <stop offset="100%" stop-color="#ec4899" stop-opacity="0"/>
           </radialGradient>
-          <!-- Glass -->
+
+          <!-- Glassmorphism Panels -->
           <linearGradient id="glass-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="rgba(255, 255, 255, 0.15)" />
+            <stop offset="0%" stop-color="rgba(255, 255, 255, 0.12)" />
             <stop offset="100%" stop-color="rgba(255, 255, 255, 0.03)" />
           </linearGradient>
-          <linearGradient id="glass-divider" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="rgba(255, 255, 255, 0)" />
-            <stop offset="50%" stop-color="rgba(255, 255, 255, 0.2)" />
-            <stop offset="100%" stop-color="rgba(255, 255, 255, 0)" />
+          <linearGradient id="glass-grad-highlight" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="rgba(255, 255, 255, 0.2)" />
+            <stop offset="100%" stop-color="rgba(255, 255, 255, 0.05)" />
           </linearGradient>
         </defs>
 
-        <!-- Background -->
-        <rect width="500" height="420" rx="15" fill="url(#bg-grad)" />
+        <style>
+          .fade-in { opacity: 0; animation: fadeIn 1s ease-in-out forwards; }
+          .delay-1 { animation-delay: 0.3s; }
+          .delay-2 { animation-delay: 0.6s; }
+          .delay-3 { animation-delay: 0.9s; }
+          
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          
+          .pulse-text { animation: pulse 3s infinite ease-in-out; }
+          @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+            100% { opacity: 0.8; }
+          }
+        </style>
+
+        <!-- Base Background -->
+        <rect width="800" height="600" rx="20" fill="url(#bg-grad)" />
         
-        <!-- Background Orbs -->
-        <circle cx="80" cy="80" r="120" fill="url(#orb1)" />
-        <circle cx="420" cy="150" r="140" fill="url(#orb2)" />
-        <circle cx="250" cy="380" r="150" fill="url(#orb3)" />
+        <!-- Animated Background Orbs -->
+        <g>
+          <circle cx="200" cy="150" r="250" fill="url(#orb-blue)">
+            <animateTransform attributeName="transform" type="translate" values="0,0; 50,50; 0,0" dur="15s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="600" cy="450" r="300" fill="url(#orb-purple)">
+            <animateTransform attributeName="transform" type="translate" values="0,0; -60,-40; 0,0" dur="20s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="400" cy="100" r="200" fill="url(#orb-pink)">
+            <animateTransform attributeName="transform" type="translate" values="0,0; 40,-30; 0,0" dur="18s" repeatCount="indefinite" />
+          </circle>
+        </g>
 
-        <!-- Glassmorphism Card (overlay) -->
-        <rect x="15" y="15" width="470" height="390" rx="10" fill="url(#glass-grad)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
-
-        <!-- Text Content -->
-        <g font-family="'Segoe UI', Ubuntu, sans-serif">
-          
-          <!-- Aggregate Section -->
-          <text x="35" y="55" font-weight="bold" font-size="22" fill="#ffffff">🚀 Total Aggregate Stats</text>
-          
-          <g font-size="14" fill="#cbd5e1" font-weight="600">
-            <text x="35" y="90">Total Contributions:</text>
-            <text x="180" y="90" fill="#ffffff" font-weight="bold">${combined.total}</text>
-            <text x="35" y="115">Total Commits:</text>
-            <text x="180" y="115" fill="#ffffff" font-weight="bold">${combined.commits}</text>
-            
-            <text x="270" y="90">Total PRs &amp; Issues:</text>
-            <text x="405" y="90" fill="#ffffff" font-weight="bold">${combined.prs + combined.issues}</text>
-            <text x="270" y="115">Total Stars:</text>
-            <text x="405" y="115" fill="#fde047" font-weight="bold">${combined.stars}</text>
-          </g>
-
-          <!-- Divider -->
-          <rect x="35" y="135" width="430" height="1" fill="url(#glass-divider)" />
-
-          <!-- Jay-Rajankar-VIIT Section -->
-          <text x="35" y="165" font-weight="bold" font-size="18" fill="#a78bfa">Jay-Rajankar-VIIT</text>
-          <g font-size="13" fill="#94a3b8" font-weight="600">
-            <text x="35" y="195">Contributions:</text>
-            <text x="140" y="195" fill="#f8fafc" font-weight="bold">${stats1.total}</text>
-            <text x="35" y="220">Commits:</text>
-            <text x="140" y="220" fill="#f8fafc" font-weight="bold">${stats1.commits}</text>
-            
-            <text x="270" y="195">PRs &amp; Issues:</text>
-            <text x="375" y="195" fill="#f8fafc" font-weight="bold">${stats1.prs + stats1.issues}</text>
-            <text x="270" y="220">Stars:</text>
-            <text x="375" y="220" fill="#fde047" font-weight="bold">${stats1.stars}</text>
-          </g>
-
-          <!-- Divider -->
-          <rect x="35" y="245" width="430" height="1" fill="url(#glass-divider)" />
-
-          <!-- JayRajankar Section -->
-          <text x="35" y="275" font-weight="bold" font-size="18" fill="#38bdf8">JayRajankar</text>
-          <g font-size="13" fill="#94a3b8" font-weight="600">
-            <text x="35" y="305">Contributions:</text>
-            <text x="140" y="305" fill="#f8fafc" font-weight="bold">${stats2.total}</text>
-            <text x="35" y="330">Commits:</text>
-            <text x="140" y="330" fill="#f8fafc" font-weight="bold">${stats2.commits}</text>
-            
-            <text x="270" y="305">PRs &amp; Issues:</text>
-            <text x="375" y="305" fill="#f8fafc" font-weight="bold">${stats2.prs + stats2.issues}</text>
-            <text x="270" y="330">Stars:</text>
-            <text x="375" y="330" fill="#fde047" font-weight="bold">${stats2.stars}</text>
-          </g>
-
-          <!-- Footer/Brand -->
-          <text x="35" y="375" font-size="12" fill="#64748b" font-weight="600" font-style="italic">
-            Custom built &amp; dynamically updating via Vercel
+        <!-- TITLE -->
+        <g class="fade-in">
+          <text x="400" y="60" text-anchor="middle" font-family="'Segoe UI', Ubuntu, sans-serif" font-weight="bold" font-size="32" fill="#ffffff" class="pulse-text">
+            🚀 JAY'S DEVELOPER UNIVERSE 🚀
+          </text>
+          <text x="400" y="85" text-anchor="middle" font-family="'Segoe UI', Ubuntu, sans-serif" font-size="16" fill="#cbd5e1">
+            Aggregated Data from Jay-Rajankar-VIIT &amp; JayRajankar
           </text>
         </g>
+
+        <!-- PANEL 1: MASSIVE AGGREGATE STATS (Top Center) -->
+        <g class="fade-in delay-1" transform="translate(40, 120)">
+          <rect width="720" height="160" rx="15" fill="url(#glass-grad-highlight)" stroke="rgba(255,255,255,0.3)" stroke-width="2" />
+          
+          <g font-family="'Segoe UI', Ubuntu, sans-serif" fill="#ffffff" text-anchor="middle">
+            <!-- Contributions -->
+            <text x="120" y="55" font-size="16" fill="#cbd5e1" font-weight="600">Contributions</text>
+            <text x="120" y="105" font-size="44" font-weight="bold" fill="#38bdf8">${combined.total}</text>
+            <text x="120" y="130" font-size="14" fill="#94a3b8">(past year)</text>
+            
+            <!-- Commits -->
+            <text x="280" y="55" font-size="16" fill="#cbd5e1" font-weight="600">Total Commits</text>
+            <text x="280" y="105" font-size="44" font-weight="bold" fill="#a855f7">${combined.commits}</text>
+
+            <!-- Stars -->
+            <text x="440" y="55" font-size="16" fill="#cbd5e1" font-weight="600">Stars Earned</text>
+            <text x="440" y="105" font-size="44" font-weight="bold" fill="#fde047">${combined.stars}</text>
+
+            <!-- Followers -->
+            <text x="600" y="55" font-size="16" fill="#cbd5e1" font-weight="600">Followers</text>
+            <text x="600" y="105" font-size="44" font-weight="bold" fill="#ec4899">${combined.followers}</text>
+          </g>
+        </g>
+
+        <!-- PANEL 2: TOP LANGUAGES (Bottom Left) -->
+        <g class="fade-in delay-2" transform="translate(40, 310)">
+          <rect width="345" height="250" rx="15" fill="url(#glass-grad)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
+          
+          <text x="25" y="40" font-family="'Segoe UI', Ubuntu, sans-serif" font-weight="bold" font-size="20" fill="#ffffff">
+            🔥 Top Languages
+          </text>
+          
+          <g font-family="'Segoe UI', Ubuntu, sans-serif" font-size="14" fill="#cbd5e1" font-weight="600">
+            ${topLangs.map((lang, i) => \`
+              <g transform="translate(25, \${75 + i * 35})">
+                <text x="0" y="12">\${lang.name}</text>
+                <text x="295" y="12" text-anchor="end">\${Math.round((lang.count / totalLangRepos) * 100)}%</text>
+                <rect x="0" y="20" width="295" height="6" rx="3" fill="rgba(255,255,255,0.1)" />
+                <rect x="0" y="20" width="0" height="6" rx="3" fill="\${lang.color}">
+                  <animate attributeName="width" from="0" to="\${(lang.count / totalLangRepos) * 295}" dur="1.5s" fill="freeze" />
+                </rect>
+              </g>
+            \`).join('')}
+          </g>
+        </g>
+
+        <!-- PANEL 3: ACCOUNT SPLIT (Bottom Right) -->
+        <g class="fade-in delay-3" transform="translate(415, 310)">
+          <rect width="345" height="250" rx="15" fill="url(#glass-grad)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
+          
+          <text x="25" y="40" font-family="'Segoe UI', Ubuntu, sans-serif" font-weight="bold" font-size="20" fill="#ffffff">
+            📊 Account Breakdown
+          </text>
+
+          <g font-family="'Segoe UI', Ubuntu, sans-serif" font-size="14" font-weight="600">
+            <!-- Account 1 -->
+            <text x="25" y="80" fill="#a78bfa" font-size="16" font-weight="bold">@Jay-Rajankar-VIIT</text>
+            <text x="25" y="110" fill="#cbd5e1">Public &amp; Private Repos:</text>
+            <text x="315" y="110" fill="#ffffff" text-anchor="end">${stats1.repos}</text>
+            <text x="25" y="135" fill="#cbd5e1">PRs &amp; Issues:</text>
+            <text x="315" y="135" fill="#ffffff" text-anchor="end">${stats1.prs + stats1.issues}</text>
+
+            <rect x="25" y="165" width="290" height="1" fill="rgba(255,255,255,0.1)" />
+
+            <!-- Account 2 -->
+            <text x="25" y="200" fill="#38bdf8" font-size="16" font-weight="bold">@JayRajankar</text>
+            <text x="25" y="230" fill="#cbd5e1">Public &amp; Private Repos:</text>
+            <text x="315" y="230" fill="#ffffff" text-anchor="end">${stats2.repos}</text>
+            <text x="25" y="255" fill="#cbd5e1">PRs &amp; Issues:</text>
+            <text x="315" y="255" fill="#ffffff" text-anchor="end">${stats2.prs + stats2.issues}</text>
+          </g>
+        </g>
+
       </svg>
     `;
 
