@@ -8,6 +8,10 @@ import { ContributionGalaxy } from '@/components/ContributionGalaxy';
 import { CodingStreak } from '@/components/CodingStreak';
 import { DeveloperRadar } from '@/components/DeveloperRadar';
 import { AccountBreakdown } from '@/components/AccountBreakdown';
+import { ActivityTimeline } from '@/components/ActivityTimeline';
+import { UniverseMap } from '@/components/UniverseMap';
+import { Achievements } from '@/components/Achievements';
+import { CommandCenter } from '@/components/CommandCenter';
 import { motion } from 'framer-motion';
 
 export default function Home() {
@@ -167,6 +171,62 @@ export default function Home() {
               color: 'from-cyan-400 to-blue-400',
               emoji: '🚀',
             }}
+          />
+        </motion.section>
+
+        {/* Activity Timeline */}
+        <motion.section
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+        >
+          <h2 className="text-3xl font-bold text-white mb-8">Recent Activity</h2>
+          <ActivityTimeline stats={combined} />
+        </motion.section>
+
+        {/* Universe Map */}
+        {user1Data?.repositories?.nodes && (
+          <motion.section
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl font-bold text-white mb-8">Universe Map</h2>
+            <UniverseMap 
+              repositories={user1Data.repositories.nodes.map((repo: any) => ({
+                name: repo.name,
+                stars: repo.stargazers.totalCount,
+                language: repo.primaryLanguage?.name,
+              }))}
+            />
+          </motion.section>
+        )}
+
+        {/* Achievements */}
+        <motion.section
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+        >
+          <h2 className="text-3xl font-bold text-white mb-8">Achievements</h2>
+          <Achievements stats={combined} />
+        </motion.section>
+
+        {/* Command Center */}
+        <motion.section
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+        >
+          <h2 className="text-3xl font-bold text-white mb-8">Command Center</h2>
+          <CommandCenter 
+            developerName="Jay Rajankar"
+            location="Building the Universe"
+            bio="Full-stack developer crafting elegant solutions"
           />
         </motion.section>
 
