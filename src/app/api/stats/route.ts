@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     ]);
 
     const calculateStats = (user: any) => {
-      if (!user) return { commits: 0, prs: 0, issues: 0, total: 0, stars: 0, followers: 0, repos: 0, languages: [] };
+      if (!user) return { commits: 0, prs: 0, issues: 0, total: 0, stars: 0, followers: 0, repos: 0, languages: {} as Record<string, { count: number, color: string }> };
       
       const contribs = user.contributionsCollection;
       const repoNodes = user.repositories.nodes;
